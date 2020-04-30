@@ -4,14 +4,14 @@ ___
 
 ## Содержание репозитория
 В данном репозитории вы найдете сценарий, автоматизирующий процесс создания
-файловой структуры Nested, предусмотренной методологией [БЭМ](https://ru.bem.info/methodology/).
+файловой структуры Nested, предусмотренной методологией [*БЭМ*](https://ru.bem.info/methodology/).
 
 
 ## Необходимые инструменты
-1. Язык программирования *Python 3*, [сайт](https://www.python.org/)
+1. Язык программирования [*Python 3*](https://www.python.org/)
   
    Установка: скачайте Python 3 с официального сайта, запустите инсталлятор.
-2. Библиотека *BeautifulSoup4*, [сайт](https://www.crummy.com/software/BeautifulSoup/bs4/doc.ru/bs4ru.html)
+2. Библиотека [*BeautifulSoup4*](https://www.crummy.com/software/BeautifulSoup/bs4/doc.ru/bs4ru.html)
   
    Установка: введите в терминале команду: `pip3 install beautifulsoup4`.
 

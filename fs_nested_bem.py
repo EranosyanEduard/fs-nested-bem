@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
-# Скрипт для создания файловой структуры "Nested", методология БЭМ
+# Скрипт для создания файловой структуры "Nested", методология БЭМ.
+# В рамках данного скрипта я использую термин "БЭМ-компонент", имея ввиду любую
+# БЭМ-сущность, т.е. и БЭМ-блок и БЭМ-элемент и БЭМ-модификатор.
 
 # Импорт библиотеки "BeautifulSoup4" для извлечения данных из HTML-файла и
-# модулей, являющихся частью языка программирования Python 3
+# модулей, являющихся частью стандартной библиотеки Python 3.
 from bs4 import BeautifulSoup
-import glob
 import json
 import os
-import shutil
+import re
 
-# Требуем от пользователя ввести путь к HTML-файлу
+# Требуем от пользователя ввести путь к HTML-файлу.
 HTML_FILE = input('Введите путь к HTML-файлу: ')
 
 # Проверяем наличие HTML-файла. В случае его отсутствия печатаем на экране
-# служебное сообщение и завершаем работу скрипта
+# служебное сообщение и завершаем работу скрипта.
 if not os.path.exists(HTML_FILE):
     print('HTML-файл {} не найден.'.format(HTML_FILE))
 else:
@@ -21,147 +22,184 @@ else:
         soup = BeautifulSoup(fp, 'html.parser')
 
 
-    def get_list_of_tags():
-        """ Функция возвращает список всех HTML-тэгов, имеющихся в файле HTML_FILE """
+    def get_list_of_tags() -> list:
+        """ Функция возвращает список объектов, являющихся HTML-элементами,
+            содержащимися в HTML-файле """
         return soup.find_all(True)
 
 
-    def get_list_of_tags_having_classes():
-        """ Функция, используя функцию get_list_of_tags, возвращает список HTML-тэгов,
-        имеющих атрибут class """
+    def get_list_of_tags_having_classes() -> list:
+        """ Функция возвращает список объектов, являющихся HTML-элементами,
+            имеющими атрибут class """
         return list(filter(lambda tag: tag.has_attr('class'), get_list_of_tags()))
 
 
-    def get_set_of_classes():
-        """ Функция, используя функцию get_list_of_tags_having_classes, возвращает
-        множество классов HTML-тэгов """
+    def get_set_of_classes() -> set:
+        """ Функция возвращает множество строк, содержащих имена классов
+            HTML-элементов """
         list_of_classes = []
         for tag in get_list_of_tags_having_classes():
             list_of_classes.extend(tag.get('class'))
         return set(list_of_classes)
 
 
-    def get_json_file_path():
-        """ Функция возвращает строку - путь к JSON-файлу """
+    def get_json_file_path() -> str:
+        """ Функция возвращает строку, содержащую путь к JSON-файлу """
         return 'listOfUsedClasses.json'
     
 
-    def write_json_file(list_of_classes=[]):
-        """ Функция, используя функцию get_json_file_path, записывает данные в JSON-файл,
-        предварительно преобразовав их в JSON-строку """
+    def write_json_file(list_of_classes: list = []) -> None:
+        """ Функция, получив путь к JSON-файлу с помощью функции get_json_file_path,
+            преобразовывает исходный тип данных в JSON-строку и записывает ее в
+            данный файл """
         with open(get_json_file_path(), 'wt') as json_file:
-            json_file.write(json.dumps({'current_list_of_classes': list_of_classes}, indent='\t'))
+            json_file.write(json.dumps({'used_classes': list_of_classes}, indent='\t'))
 
 
-    def read_json_file():
-        """ Функция, используя функцию get_json_file_path, возвращает словарь,
-        после прочтения JSON-файла и преобразования JSON-строки в исходный тип данных """
+    def read_json_file() -> dict:
+        """ Функция, получив путь к JSON-файлу с помощью функции get_json_file_path,
+            прочитывает такой файл и преобразовывает JSON-строку в исходный тип
+            данных, возвращаяя словарь """
         with open(get_json_file_path()) as json_file:
             return json.loads(json_file.read())
 
 
-    def get_set_of_used_classes():
-        """ Функция, используя функцию read_json_file, возвращает множество,
-        элементами которого являются классы HTML-тэгов, для которых создана
-        файловая структура Nested """
-        return set(read_json_file()['current_list_of_classes'])
+    def get_set_of_used_classes() -> set:
+        """ Функция возвращает множество строк, содержащих имена классов HTML-элементов,
+            имеющих файловую структуру """
+        return set(read_json_file()['used_classes'])
         
         
-    def get_set_of_new_classes():
-        """ Функция, используя функции get_set_of_classes и get_set_of_used_classes,
-        возвращает множество, элементами которого являются классы HTML-тэгов,
-        для которых не создана файловая структура Nested """
+    def get_set_of_new_classes() -> set:
+        """ Функция возвращает множество строк, содержащих имена классов HTML-элементов,
+            не имеющих файловой структуры """
         return get_set_of_classes() - get_set_of_used_classes()
-
-
-    def create_dirs_and_css_files():
-        """ Функция, используя функцию get_set_of_new_classes, создает каталоги и
-        CSS-файлы для каждого элемента множества, т.е. класса, для которого не создана
-        файловая структура Nested """
-        for class_name in get_set_of_new_classes():
-            os.mkdir(class_name)
-            with open('{0}/{0}.css'.format(class_name), 'wt') as css_file:
-                css_file.write('.{} {}'.format(class_name, '{}'))
                 
 
-    def get_list_of_blocks():
-        """ Функция, используя функцию get_set_of_classes, возвращает
-        список, элементами которого являются классы HTML-тегов - БЭМ-блоки """
-        return list(filter(lambda class_name: '_' not in class_name, get_set_of_classes()))
+    def get_name_pattern() -> str:
+        """ Функция возвращает строку, содержащую шаблон, который используется
+            для создания шаблонов имен БЭМ-компонентов """
+        return '[a-z]+(-[a-z]+)?'
 
 
-    def move_elements_and_modifiers_to_blocks():
-        """ Функция, используя функцию get_list_of_blocks, перемещает файлы БЭМ-элементов
-        и БЭМ-модификаторов в соответствующие им каталоги БЭМ-блоков """
-        for block in get_list_of_blocks():
-            for element_or_modifier in glob.glob('{}_*'.format(block)):
-                shutil.move(element_or_modifier, block)
+    def get_bem_component_name_pattern(component_name: str) -> str:
+        """ Функция, руководствуясь значением параметра component_name, возвращает
+            строку, содержащую либо шаблон имени БЭМ-компонента либо сообщение об
+            ошибке """
+        NAME_PATTERN = get_name_pattern()
+        dict_of_patterns = {
+            'block': '{}'.format(NAME_PATTERN),
+            'block modifier': '{0}(_{0}){1}'.format(NAME_PATTERN, '{1,2}'),
+            'element': '{0}__{0}'.format(NAME_PATTERN),
+            'element modifier': '{0}__{0}(_{0}){1}'.format(NAME_PATTERN, '{1,2}')
+        }
+        ERROR_MSG = '[ValueError]: component_name is undefined'
+        return dict_of_patterns.get(component_name, ERROR_MSG)
 
 
-    def rename_element_and_modifier_dirs():
-        """ Функция, используя функцию get_list_of_blocks, переименовывает каталоги
-        БЭМ-элементов и БЭМ-модификаторов, содержащие имена БЭМ-блоков, например
-        из header__link в __link или из logo_place_header в _place_header """
-        for block in get_list_of_blocks():
-            os.chdir(block)
-            for dir_name in glob.glob('{}_*'.format(block)):
-                os.rename(dir_name, dir_name.replace(block, ''))
-            os.chdir('..')
+    def is_bem_component(component_name: str, class_name: str) -> bool:
+        """ Функция определяет соответствует ли HTML-элемент с классом class_name
+            БЭМ-компоненту, определенному параметром component_name, возвращая
+            одно из двух булевых значений """
+        COMPONENT_NAME_PATTERN = \
+            re.compile('^{}$'.format(get_bem_component_name_pattern(component_name)))
+        return bool(COMPONENT_NAME_PATTERN.match(class_name))
 
 
-    def move_element_modifiers_to_elements():
-        """ Функция, используя функцию get_list_of_blocks, создает каталоги БЭМ-модификаторов
-        в соответствующих им каталогах БЭМ-элементов и перемещает в них CSS-файлы таких
-        модификаторов, при этом удаляя лишние каталоги """
-        for block in get_list_of_blocks():
-            os.chdir(block)
-            for dir_name in glob.glob('__*_*'):
-                element = dir_name[2:].split('_')[0]
-                modifier = dir_name[2:].split('_')[1]
-                modifier_dir_path = '__{}/_{}'.format(element, modifier)
-                if not os.path.exists(modifier_dir_path):
-                    os.mkdir(modifier_dir_path)
-                os.chdir(dir_name)
-                shutil.move(os.listdir()[0], '../{}'.format(modifier_dir_path))
-                os.chdir('..')
-                os.rmdir(dir_name)
-            os.chdir('..')
+    def get_list_of_bem_components(component_name: str, classes) -> list:
+        """ Функция производит фильтрацию списка (множества) classes и возвращает
+            список строк, содержащих имена классов HTML-элементов, соответствующих
+            БЭМ-компоненту, определенному параметром component_name """
+        return list(filter(
+            lambda class_name: is_bem_component(component_name, class_name), classes
+        ))
 
 
-    def move_block_modifiers_to_modifiers():
-        """ Функция, используя функцию get_list_of_blocks, создает каталоги БЭМ-модификаторов
-        в соответствующих им каталогах БЭМ-блоков и перемещает в них CSS-файлы таких
-        модификаторов, при этом удаляя лишние каталоги """
-        for block in get_list_of_blocks():
-            os.chdir(block)
-            for dir_name in glob.glob('_[a-z]*_*'):
-                modifier = dir_name[1:].split('_')[0]
-                modifier_dir_path = '_{}'.format(modifier)
-                if not os.path.exists(modifier_dir_path):
-                    os.mkdir(modifier_dir_path)
-                os.chdir(dir_name)
-                shutil.move(os.listdir()[0], '../{}'.format(modifier_dir_path))
-                os.chdir('..')
-                os.rmdir(dir_name)
-            os.chdir('..')
+    def get_bem_component_path_pattern(component_name: str) -> str:
+        """ Функция, руководствуясь значением параметра component_name, возвращает
+            строку, содержащую либо шаблон пути к БЭМ-компоненту либо сообщение
+            об ошибке """
+        dict_of_patterns = {
+            'block': './{}',
+            'block modifier': './{}/{}',
+            'element': './{}/{}',
+            'element modifier': './{}/{}/{}'
+        }
+        ERROR_MSG = '[ValueError]: component_name is undefined'
+        return dict_of_patterns.get(component_name, ERROR_MSG)
+
+
+    def create_css_file(class_name: str) -> None:
+        """ Функция, руководствуясь значением параметра class_name, создает CSS-файл,
+            записывая в него селектор класса """
+        with open('{}.css'.format(class_name), 'wt') as css_file:
+            css_file.write('.{} {}'.format(class_name, '{\n\n}'))
+
+
+    def create_dirs_and_files_for_bem_components(component_name: str) -> None:
+        """ Функция, руководствуясь значением параметра component_name, создает
+            каталоги и CSS-файлы для БЭМ-компонентов, не имеющих файловой структуры """
+        new_components = \
+            get_list_of_bem_components(component_name, get_set_of_new_classes())
+        PATH_PATTERN = get_bem_component_path_pattern(component_name)
+        NAME_PATTERN = get_name_pattern()
+
+        for component in new_components:
+            if component_name == 'block':
+                DIR_PATH = PATH_PATTERN.format(component)
+            elif component_name == 'block modifier':
+                DIR_PATH = PATH_PATTERN.format(
+                    re.match(NAME_PATTERN, component).group(),
+                    re.search('_{}'.format(NAME_PATTERN), component).group()
+                )
+            elif component_name == 'element':
+                DIR_PATH = PATH_PATTERN.format(
+                    re.match(NAME_PATTERN, component).group(),
+                    re.search('__{}'.format(NAME_PATTERN), component).group()
+                )
+            elif component_name == 'element modifier':
+                DIR_PATH = PATH_PATTERN.format(
+                    re.match(NAME_PATTERN, component).group(),
+                    re.search('__{}'.format(NAME_PATTERN), component).group(),
+                    [result.group() for result in re.finditer('_{}'.format(NAME_PATTERN), component)][1]
+                )
+
+            if not os.path.exists(DIR_PATH):
+                os.mkdir(DIR_PATH)
+                
+            FILE_PATH = '{}/{}.css'.format(DIR_PATH, component)
+            if not os.path.exists(FILE_PATH):
+                BLOCKS_DIR = os.path.abspath('./')
+                os.chdir(DIR_PATH)
+                create_css_file(component)
+                os.chdir(BLOCKS_DIR)
         
                    
-    # Создание каталога blocks в случае его отсутствия в каталоге, содержащем данный сценарий
+    def create_fs_nested() -> None:
+        """ Функция, используя функцию create_dirs_and_files_for_bem_components,
+            создает файловую структуру Nested, соответствующую HTML-файлу """
+        create_dirs_and_files_for_bem_components('block')
+        create_dirs_and_files_for_bem_components('block modifier')
+        create_dirs_and_files_for_bem_components('element')
+        create_dirs_and_files_for_bem_components('element modifier')
+
+
+    # Проверяем наличие каталога blocks. В случае его отсутствия, создаем в каталоге,
+    # содержащем данный сценарий, и переходим в него.
     if not os.path.exists('blocks'):
         os.mkdir('blocks')
-    # Переход в каталог blocks
     os.chdir('blocks')
 
-    # Создание JSON-файла в случае его отсутствия в каталоге, содержащем данный сценарий
+    # Проверяем наличие JSON-файла. В случае его отсутствия, создаем в текущем
+    # каталоге, т.е. каталоге blocks.
     if not os.path.exists(get_json_file_path()):
         write_json_file()
 
-    # См. документации соответствующих функций
-    create_dirs_and_css_files()
-    move_elements_and_modifiers_to_blocks()
-    rename_element_and_modifier_dirs()
-    move_element_modifiers_to_elements()
-    move_block_modifiers_to_modifiers()    
-    write_json_file(list(get_set_of_classes()))
+    # Создаем файловую структуру. Подробности в документациях функций.
+    create_fs_nested()
+
+    # Записываем множество классов HTML-элементов в JSON-файл, отсортировав их
+    # в алфавитном порядке.
+    write_json_file(sorted(list(get_set_of_classes())))
 
 print('Сценарий завершил работу.')
