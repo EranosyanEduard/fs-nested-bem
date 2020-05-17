@@ -11,7 +11,7 @@ import os
 import re
 
 # Требуем от пользователя ввести путь к HTML-файлу.
-HTML_FILE = input('Введите путь к HTML-файлу: ')
+HTML_FILE: str = input('Введите путь к HTML-файлу: ')
 
 # Проверяем наличие HTML-файла. В случае его отсутствия печатаем на экране
 # служебное сообщение и завершаем работу скрипта.
@@ -45,7 +45,7 @@ else:
 
     def get_json_file_path() -> str:
         """ Функция возвращает строку, содержащую путь к JSON-файлу """
-        return 'listOfUsedClasses.json'
+        return '../.listOfUsedClasses.json'
     
 
     def write_json_file(list_of_classes: list = []) -> None:
@@ -184,11 +184,55 @@ else:
         create_dirs_and_files_for_bem_components('element modifier')
 
 
+    def get_main_css_file_path() -> str:
+        """ Функция возвращает строку, содержащую путь к основному CSS-файлу """
+        return './{}'.format(HTML_FILE.replace('html', 'css'))
+
+
+    def write_main_css_file(import_string: str = '') -> None:
+        """ Функция, получив путь к основному CSS-файлу с помощью функции
+            get_main_css_file_path, записывает значение import_string, переданное
+            ей в качестве аргумента, в данный файл """
+        with open(get_main_css_file_path(), 'at') as css_file:
+            css_file.write(import_string)
+
+
+    def read_main_css_file() -> str:
+        """ Функция, получив путь к основному CSS-файлу с помощью функции
+            get_main_css_file_path, прочитывает такой файл, возвращая строку """
+        with open(get_main_css_file_path()) as css_file:
+            return css_file.read()
+
+
+    def include_in_current_import_string(import_string: str) -> bool:
+        """ Функция определяет, входит ли директива подключения БЭМ-блока,
+            определенная параметром import_string, в основной CSS-файл, возвращая
+            одно из двух булевых значений """
+        IMPORT_STRING_PATTERN = re.compile('^{}$'.format(read_main_css_file()))
+        return bool(IMPORT_STRING_PATTERN.search(import_string))
+
+
+    def get_import_string() -> str:
+        """ Функция в случае необходимости возвращает строку, содержащую директивы
+            подключения БЭМ-блоков к основному CSS-файлу (@import url()), а в случае
+            ее отсутствия - пустую строку """
+        NEW_BLOCKS: list = \
+            get_list_of_bem_components('block', get_set_of_new_classes())
+        new_import_string: str = ''
+
+        for BLOCK in NEW_BLOCKS:
+            BLOCK_IMPORT_STRING = '@import url(../blocks/{0}/{0}.css);'.format(BLOCK)
+            if not include_in_current_import_string(BLOCK_IMPORT_STRING):
+                new_import_string += (BLOCK_IMPORT_STRING + '\n')
+
+        return new_import_string
+
+
     # Проверяем наличие каталога blocks. В случае его отсутствия, создаем в каталоге,
     # содержащем данный сценарий, и переходим в него.
-    if not os.path.exists('blocks'):
-        os.mkdir('blocks')
-    os.chdir('blocks')
+    if not os.path.exists('./blocks'):
+        os.mkdir('./blocks')
+    os.chdir('./blocks')
 
     # Проверяем наличие JSON-файла. В случае его отсутствия, создаем в текущем
     # каталоге, т.е. каталоге blocks.
@@ -198,8 +242,30 @@ else:
     # Создаем файловую структуру. Подробности в документациях функций.
     create_fs_nested()
 
+    # Возвращаемся из каталога blocks в корневой каталог.
+    os.chdir('../')
+
+    # Проверяем наличие каталога pages. В случае его отсутствия, создаем в каталоге,
+    # содержащем данный сценарий, и переходим в него.
+    if not os.path.exists('./pages'):
+        os.mkdir('./pages')
+    os.chdir('./pages')
+    
+    # Проверяем наличие основного CSS-файла. В случае его отсутствия, создаем в
+    # текущем каталоге, т.е. каталоге pages, и записываем в него определенную
+    # строковую константу.
+    if not os.path.exists(get_main_css_file_path()):
+        write_main_css_file('/* @import url(../vendor/normalize.css); */\n')
+        
+    # Записываем в основной CSS-файл строку, полученную в результате вызова
+    # функции get_import_string
+    write_main_css_file(get_import_string())
+
     # Записываем множество классов HTML-элементов в JSON-файл, отсортировав их
     # в алфавитном порядке.
     write_json_file(sorted(list(get_set_of_classes())))
+
+    # Возвращаемся из каталога pages в корневой каталог.
+    os.chdir('../')
 
 print('Сценарий завершил работу.')
