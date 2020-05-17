@@ -3,22 +3,59 @@
 # В рамках данного скрипта я использую термин "БЭМ-компонент", имея ввиду любую
 # БЭМ-сущность, т.е. и БЭМ-блок и БЭМ-элемент и БЭМ-модификатор.
 
-# Импорт библиотеки "BeautifulSoup4" для извлечения данных из HTML-файла и
-# модулей, являющихся частью стандартной библиотеки Python 3.
+# Импорт библиотеки "PySimpleGUI" для создания графического интерфейса.
+import PySimpleGUI as sg
+# Импорт библиотеки "BeautifulSoup4" для извлечения данных из HTML-файла. 
 from bs4 import BeautifulSoup
+# Импорт модулей, являющихся частью стандартной библиотеки Python 3.
 import json
 import os
 import re
 
+
+def get_element_size() -> tuple:
+    """ Функция возвращает кортеж, содержащий размеры графического элемента """
+    return (20, 1)
+
+
+# В рамках данного участка кода (стр. 22-47) создаем графический интерфейс,
+# позволяющий выбрать необходимый HTML-файл
+sg.theme('DarkAmber')
+
+layout: list = [
+    [sg.Text('Select your html file:')],
+    [sg.Text()],
+    [sg.FileBrowse(key='-PATH-', size=get_element_size())],
+    [sg.Submit(size=get_element_size())],
+    [sg.Cancel(size=get_element_size())]
+]
+
+window = sg.Window(
+    'FS "Nested", BEM', layout, element_justification='center', font=('', 18)
+)
+
+html_file: str = 'default_value'
+
+while True:
+    event, values = window.read()
+    # print(event, values)
+    if event in (None, 'Exit', 'Cancel'):
+        break
+    if event == 'Submit':
+        html_file = values['-PATH-'].split('/')[-1]
+        break
+
+window.close()
+
 # Требуем от пользователя ввести путь к HTML-файлу.
-HTML_FILE: str = input('Введите путь к HTML-файлу: ')
+# html_file: str = input('Введите путь к HTML-файлу: ')
 
 # Проверяем наличие HTML-файла. В случае его отсутствия печатаем на экране
 # служебное сообщение и завершаем работу скрипта.
-if not os.path.exists(HTML_FILE):
-    print('HTML-файл {} не найден.'.format(HTML_FILE))
+if not os.path.exists(html_file):
+    print('HTML-файл {} не найден.'.format(html_file))
 else:
-    with open(HTML_FILE, encoding='utf-8') as fp:
+    with open(html_file, encoding='utf-8') as fp:
         soup = BeautifulSoup(fp, 'html.parser')
 
 
@@ -45,7 +82,7 @@ else:
 
     def get_json_file_path() -> str:
         """ Функция возвращает строку, содержащую путь к JSON-файлу """
-        return '../.listOfUsedClasses.json'
+        return '../listOfUsedClasses.json'
     
 
     def write_json_file(list_of_classes: list = []) -> None:
@@ -186,7 +223,7 @@ else:
 
     def get_main_css_file_path() -> str:
         """ Функция возвращает строку, содержащую путь к основному CSS-файлу """
-        return './{}'.format(HTML_FILE.replace('html', 'css'))
+        return html_file.replace('html', 'css')
 
 
     def write_main_css_file(import_string: str = '') -> None:
